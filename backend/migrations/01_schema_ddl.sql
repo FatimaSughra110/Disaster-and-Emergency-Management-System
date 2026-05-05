@@ -1,0 +1,4 @@
+-- =============================================================================
+--  DEMS - Disaster & Emergency Management System
+--  FILE: 01_schema_ddl.sql
+--  PURPOSE: Core
