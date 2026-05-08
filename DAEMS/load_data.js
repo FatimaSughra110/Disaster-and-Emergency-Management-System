@@ -1,7 +1,7 @@
-require('dotenv').config();
-const fs = require('fs');
-const csv = require('csv-parser');
-const oracledb = require('oracledb');
+import 'dotenv/config';
+import fs from 'fs';
+import csv from 'csv-parser';
+import oracledb from 'oracledb';
 
 const dbConfig = {
   user: process.env.DB_USER || 'admin',
@@ -26,7 +26,6 @@ async function loadData() {
       .on('end', async () => {
         console.log(`Parsed ${results.length} rows. Inserting into Oracle...`);
         
-        // Insert only first 100 for performance in prototype, or all if needed
         const limit = 500; 
         for (let i = 0; i < Math.min(results.length, limit); i++) {
           const row = results[i];
@@ -38,33 +37,34 @@ async function loadData() {
           try {
             await connection.execute(
               `INSERT INTO incidents (incident_id, type, title, description, severity, location, latitude, longitude, incident_date, incident_time, resources_allocated, volunteers_allocated, status) 
-               VALUES (:id, :type, :title, :desc, :sev, :loc, :lat, :lng, TO_DATE(:idate, 'YYYY-MM-DD'), :itime, :res, :vol, :stat)`,
+               VALUES (:v_id, :v_type, :v_title, :v_desc, :v_sev, :v_loc, :v_lat, :v_lng, TO_DATE(:v_idate, 'YYYY-MM-DD'), :v_itime, :v_res, :v_vol, :v_stat)`,
               {
-                id: row.ID,
-                type: row.Category_title,
-                title: row.Title,
-                desc: row.Description,
-                sev: severity,
-                loc: row.Title.split(' ').slice(0, 3).join(' '), // Simple location name
-                lat: parseFloat(row.Latitude),
-                lng: parseFloat(row.Longitude),
-                idate: row.Date,
-                itime: row.Time,
-                res: resAlloc,
-                vol: volAlloc,
-                stat: status
+                v_id: row.ID,
+                v_type: row.Category_title,
+                v_title: row.Title,
+                v_desc: row.Description,
+                v_sev: severity,
+                v_loc: row.Title.split(' ').slice(0, 3).join(' '), 
+                v_lat: parseFloat(row.Latitude),
+                v_lng: parseFloat(row.Longitude),
+                v_idate: row.Date,
+                v_itime: row.Time,
+                v_res: resAlloc,
+                v_vol: volAlloc,
+                v_stat: status
               }
             );
           } catch (e) {
-            // console.error(`Error inserting row ${row.ID}:`, e.message);
+            console.error(`Error inserting row ${row.ID}:`, e.message);
           }
         }
         
         await connection.commit();
 
-        // Seed some volunteers if empty
-        const volCheck = await connection.execute('SELECT count(*) as count FROM volunteers');
-        if (volCheck.rows[0][0] === 0) {
+        const volCheck = await connection.execute('SELECT count(*) as count FROM volunteers', [], { outFormat: oracledb.OUT_FORMAT_OBJECT });
+        const count = volCheck.rows[0].COUNT;
+        
+        if (count === 0) {
             console.log('Seeding volunteers...');
             const sampleVols = [
                 ['Dr. Ayesha Khan', 'Medical, Triage', '2.1 km', 'available', 'AK'],
@@ -88,6 +88,8 @@ async function loadData() {
   } catch (err) {
     console.error(err);
     process.exit(1);
+  } finally {
+    // Note: process.exit is called in the stream 'end' event
   }
 }
 

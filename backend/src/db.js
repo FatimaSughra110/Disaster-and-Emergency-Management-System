@@ -38,4 +38,8 @@ async function execute(sql, binds = [], opts = {}) {
   }
 }
 
-async function simpleQuery(sql, binds = [])
+// Export the pool initialization and execution functions
+module.exports = {
+  initializePool,
+  execute
+};
