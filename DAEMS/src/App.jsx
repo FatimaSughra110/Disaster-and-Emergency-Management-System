@@ -18,25 +18,27 @@ L.Marker.prototype.options.icon = DefaultIcon;
 const API_BASE = "http://localhost:3001/api";
 
 const PALETTE = {
-  cream: "#F2EFE7",
-  seafoam: "#9ACBD0",
-  teal: "#48A6A7",
-  navy: "#2973B2",
+  primary: "#1F6F5F",
+  secondary: "#2FA084",
+  accent: "#6FCF97",
+  surface: "#EEEEEE",
+  textDark: "#0D2B25",
+  textMuted: "#4A7A6D",
 };
 
 const SEVERITY_COLORS = {
-  critical: "#ef4444",
-  high: "#f97316",
-  medium: "#eab308",
-  low: "#22c55e",
+  critical: "#C0392B", // Derived red as requested
+  high: "#E67E22",
+  medium: "#F1C40F",
+  low: "#27AE60",
 };
 
 const STATUS_COLORS = {
-  active: "#ef4444",
-  contained: "#22c55e",
-  monitoring: "#eab308",
-  deployed: "#2973B2",
-  available: "#48A6A7",
+  active: "#C0392B",
+  contained: "#27AE60",
+  monitoring: "#F1C40F",
+  deployed: "#1F6F5F",
+  available: "#2FA084",
 };
 
 function ChangeView({ center, zoom }) {
@@ -50,7 +52,7 @@ function IncidentMap({ selected, incidents, predictions, onSelect }) {
   const zoom = selected ? 10 : 2;
 
   return (
-    <div style={{ borderRadius: 16, overflow: "hidden", height: "calc(100vh - 300px)", minHeight: 450, border: `2px solid ${PALETTE.seafoam}`, position: 'relative' }}>
+    <div className="fade-in-panel stagger-2" style={{ borderRadius: 4, overflow: "hidden", height: "calc(100vh - 300px)", minHeight: 450, border: `1px solid ${PALETTE.secondary}4D`, position: 'relative' }}>
       <MapContainer center={center} zoom={zoom} style={{ height: '100%', width: '100%' }}>
         <TileLayer
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
@@ -65,9 +67,9 @@ function IncidentMap({ selected, incidents, predictions, onSelect }) {
             eventHandlers={{ click: () => onSelect(inc) }}
           >
             <Popup>
-              <strong>🚨 {inc.type} (LIVE)</strong><br />
-              {inc.location}<br />
-              Severity: {inc.severity}
+              <strong style={{ fontFamily: 'var(--font-heading)' }}>🚨 {inc.type} (LIVE)</strong><br />
+              <span style={{ fontFamily: 'var(--font-body)', fontSize: 12 }}>{inc.location}</span><br />
+              <span style={{ fontFamily: 'var(--font-body)', fontSize: 12 }}>Severity: {inc.severity}</span>
             </Popup>
           </Marker>
         ))}
@@ -78,29 +80,29 @@ function IncidentMap({ selected, incidents, predictions, onSelect }) {
             center={[pred.lat, pred.lng]}
             radius={12}
             pathOptions={{
-              color: SEVERITY_COLORS[pred.severity] || "#48A6A7",
-              fillColor: SEVERITY_COLORS[pred.severity] || "#48A6A7",
+              color: SEVERITY_COLORS[pred.severity] || PALETTE.secondary,
+              fillColor: SEVERITY_COLORS[pred.severity] || PALETTE.secondary,
               fillOpacity: 0.4,
               dashArray: '5, 5'
             }}
           >
             <Popup>
-              <strong>🤖 AI PREDICTION</strong><br />
-              Type: {pred.type}<br />
-              Confidence: {pred.confidence}%<br />
-              ETA: {pred.timeframe}<br />
-              Loc: {pred.location}
+              <strong style={{ fontFamily: 'var(--font-heading)' }}>🤖 AI PREDICTION</strong><br />
+              <span style={{ fontFamily: 'var(--font-body)', fontSize: 12 }}>Type: {pred.type}</span><br />
+              <span style={{ fontFamily: 'var(--font-body)', fontSize: 12 }}>Confidence: {pred.confidence}%</span><br />
+              <span style={{ fontFamily: 'var(--font-body)', fontSize: 12 }}>ETA: {pred.timeframe}</span><br />
+              <span style={{ fontFamily: 'var(--font-body)', fontSize: 12 }}>Loc: {pred.location}</span>
             </Popup>
           </CircleMarker>
         ))}
       </MapContainer>
       
-      <div style={{ position: 'absolute', bottom: 20, left: 20, background: 'white', padding: 10, borderRadius: 8, zIndex: 1000, boxShadow: '0 2px 10px rgba(0,0,0,0.2)', fontSize: 12 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 5, color: 'black' }}>
-           <img src={markerIcon} style={{ width: 12 }} /> <strong>Live Incidents</strong>
+      <div style={{ position: 'absolute', bottom: 20, left: 20, background: 'white', padding: 12, borderRadius: 2, zIndex: 1000, boxShadow: '0 2px 10px rgba(0,0,0,0.1)', fontSize: 11, border: `1px solid ${PALETTE.secondary}33` }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 5, color: PALETTE.textDark, fontFamily: 'var(--font-metadata)', opacity: 0.85 }}>
+           <img src={markerIcon} style={{ width: 10 }} /> <strong>Live Incidents</strong>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'black' }}>
-           <div style={{ width: 12, height: 12, borderRadius: '50%', border: '2px dashed #48A6A7', background: 'rgba(72, 166, 167, 0.3)' }} /> <strong>AI Predictions</strong>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: PALETTE.textDark, fontFamily: 'var(--font-metadata)', opacity: 0.85 }}>
+           <div style={{ width: 10, height: 10, borderRadius: '50%', border: `1px dashed ${PALETTE.secondary}`, background: `${PALETTE.secondary}4D` }} /> <strong>AI Predictions</strong>
         </div>
       </div>
     </div>
@@ -109,16 +111,16 @@ function IncidentMap({ selected, incidents, predictions, onSelect }) {
 
 function StatCard({ label, value, sub, accent, icon }) {
   return (
-    <div style={{
-      background: "white", borderRadius: 16, padding: "20px 24px",
-      borderLeft: `4px solid ${accent}`, boxShadow: "0 2px 12px rgba(41,115,178,0.08)",
+    <div className="fade-in-panel stagger-1" style={{
+      background: "white", borderRadius: 4, padding: "24px",
+      borderLeft: `3px solid ${accent}`, borderBottom: `1px solid ${PALETTE.secondary}1A`,
       display: "flex", alignItems: "center", gap: 16, minWidth: 0,
     }}>
-      <div style={{ fontSize: 28 }}>{icon}</div>
+      <div style={{ fontSize: 24, opacity: 0.8 }}>{icon}</div>
       <div>
-        <div style={{ fontSize: 28, fontWeight: 800, color: PALETTE.navy, lineHeight: 1 }}>{value}</div>
-        <div style={{ fontSize: 12, fontWeight: 600, color: PALETTE.teal, textTransform: "uppercase", letterSpacing: 1 }}>{label}</div>
-        {sub && <div style={{ fontSize: 11, color: "#888", marginTop: 2 }}>{sub}</div>}
+        <div style={{ fontSize: 24, fontWeight: 700, color: PALETTE.textDark, fontFamily: 'var(--font-heading)', lineHeight: 1 }}>{value}</div>
+        <div style={{ fontSize: 11, fontWeight: 700, color: PALETTE.textMuted, fontFamily: 'var(--font-heading)', textTransform: "uppercase", letterSpacing: "0.05em", marginTop: 4 }}>{label}</div>
+        {sub && <div className="metadata" style={{ fontSize: 10, marginTop: 4 }}>{sub}</div>}
       </div>
     </div>
   );
@@ -126,30 +128,31 @@ function StatCard({ label, value, sub, accent, icon }) {
 
 function IncidentRow({ inc, onClick, selected }) {
   return (
-    <div onClick={() => onClick(inc)} style={{
-      padding: "14px 18px", borderRadius: 12, cursor: "pointer",
-      background: selected ? `${PALETTE.seafoam}22` : "white",
-      border: selected ? `1.5px solid ${PALETTE.teal}` : "1.5px solid #e8e8e8",
-      marginBottom: 8, transition: "all 0.2s",
+    <div onClick={() => onClick(inc)} className="output-line" style={{
+      padding: "12px 16px", borderRadius: 2, cursor: "pointer",
+      background: selected ? `${PALETTE.primary}14` : "white",
+      borderLeft: selected ? `3px solid ${PALETTE.accent}` : "3px solid transparent",
+      borderBottom: `1px solid ${PALETTE.secondary}1A`,
+      marginBottom: 4, transition: "all 0.2s ease-out",
       display: "flex", alignItems: "center", gap: 12,
     }}>
-      <div style={{
-        width: 10, height: 10, borderRadius: "50%",
-        background: SEVERITY_COLORS[inc.severity] || "#888",
-        boxShadow: `0 0 0 3px ${SEVERITY_COLORS[inc.severity] || "#888"}33`,
+      <div className={selected ? "pulse-border" : ""} style={{
+        width: 8, height: 8, borderRadius: "50%",
+        background: SEVERITY_COLORS[inc.severity] || PALETTE.textMuted,
         flexShrink: 0,
       }} />
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontWeight: 700, fontSize: 14, color: PALETTE.navy, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+        <div style={{ fontWeight: 600, fontSize: 13, color: PALETTE.textDark, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", fontFamily: 'var(--font-body)' }}>
           {inc.type}
         </div>
-        <div style={{ fontSize: 12, color: "#777" }}>{inc.location} · {inc.time}</div>
+        <div className="metadata" style={{ fontSize: 11, color: PALETTE.textMuted }}>{inc.location} · {inc.time}</div>
       </div>
       <div style={{
         fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5,
-        padding: "3px 8px", borderRadius: 20,
-        background: `${STATUS_COLORS[inc.status]}22`,
+        padding: "2px 6px", borderRadius: 2,
+        background: `${STATUS_COLORS[inc.status]}1A`,
         color: STATUS_COLORS[inc.status],
+        fontFamily: 'var(--font-body)'
       }}>
         {inc.status}
       </div>
@@ -195,14 +198,34 @@ export default function App() {
     }
   };
 
-  useEffect(() => {
-      fetchData();
-      if (isAdmin) fetchAuditLogs();
-    
-      const interval = setInterval(fetchData, 10000);
-    
-      return () => clearInterval(interval);
-  }, []);
+  const runPrediction = async () => {
+    setIsPredicting(true);
+    try {
+      const res = await fetch(`${API_BASE}/predict/run`, { method: "POST" });
+      if (res.ok) { await fetchData(); alert("AI engine finished!"); }
+    } catch (err) {
+      alert("Error: " + err.message);
+    } finally {
+      setIsPredicting(false);
+    }
+  };
+
+  const handleLogin = async () => {
+    const u = document.getElementById("admin-user").value;
+    const p = document.getElementById("admin-pass").value;
+    try {
+      const res = await fetch(`${API_BASE}/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username: u, password: p })
+      });
+      const data = await res.json();
+      if (data.success) { setIsAdmin(true); setShowLogin(false); }
+      else { alert("Wrong credentials"); }
+    } catch (err) {
+      alert("Login failed: " + err.message);
+    }
+  };
 
   const handleAdjust = (name, delta) => {
     setEditedResources(prev => ({ ...prev, [name]: (prev[name] || 0) + delta }));
@@ -272,6 +295,7 @@ export default function App() {
       alert("Error: " + err.message);
     }
   };
+
   const fetchAuditLogs = async () => {
     try {
       const response = await fetch(`${API_BASE}/audit-logs`);
@@ -292,35 +316,17 @@ export default function App() {
     }
   };
 
-  const runPrediction = async () => {
-    setIsPredicting(true);
-    try {
-      const res = await fetch(`${API_BASE}/predict/run`, { method: "POST" });
-      if (res.ok) { await fetchData(); alert("AI engine finished!"); }
-    } catch (err) {
-      alert("Error: " + err.message);
-    } finally {
-      setIsPredicting(false);
-    }
-  };
-
-  const handleLogin = async () => {
-    const u = document.getElementById("admin-user").value;
-    const p = document.getElementById("admin-pass").value;
-    try {
-      const res = await fetch(`${API_BASE}/login`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username: u, password: p })
-      });
-      const data = await res.json();
-      if (data.success) { setIsAdmin(true); setShowLogin(false); }
-      else { alert("Wrong credentials"); }
-    } catch (err) {
-      alert("Login failed: " + err.message);
-    }
-  };
+  useEffect(() => {
+    const init = async () => {
+      await fetchData();
+      if (isAdmin) await fetchAuditLogs();
+    };
+    init();
   
+    const interval = setInterval(fetchData, 10000);
+  
+    return () => clearInterval(interval);
+  }, [isAdmin]);
 
   const criticalResources = resources.filter(r => r.current <= r.critical).length;
   const activeIncidents = incidents.filter(i => i.status === 'active').length;
@@ -337,52 +343,46 @@ export default function App() {
   ];
 
   return (
-    <div style={{ fontFamily: "'Segoe UI', sans-serif", background: PALETTE.cream, minHeight: "100vh", width: "100vw", color: "black" }}>
-      <style>{`
-        @keyframes pulse { 0%,100%{transform:scale(1);opacity:0.3} 50%{transform:scale(1.5);opacity:0} }
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        input, button { color: black !important; }
-      `}</style>
-
-      <header style={{ background: PALETTE.navy, color: "white", padding: "12px 28px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+    <div className="noise-overlay" style={{ background: PALETTE.surface, minHeight: "100vh", width: "100vw", color: PALETTE.textDark, display: "flex", flexDirection: "column" }}>
+      <header className="fade-in-panel stagger-1" style={{ background: PALETTE.primary, color: "white", padding: "16px 28px", display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: `1px solid ${PALETTE.secondary}4D` }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           <span style={{ fontSize: 24 }}>🛡</span>
-          <h1 style={{ fontSize: 18 }}>DEMS Command Center</h1>
-          {connectionError && <span style={{ background: "#ef4444", padding: "4px 8px", borderRadius: 4, fontSize: 11 }}>Offline: {connectionError}</span>}
+          <h1 style={{ fontSize: 20, margin: 0, color: "white" }}>DEMS Command Center</h1>
+          {connectionError && <span className="metadata shake" style={{ background: "#C0392B", padding: "4px 8px", borderRadius: 2, fontSize: 10 }}>OFFLINE: {connectionError}</span>}
         </div>
         <div>
           {isAdmin ? (
             <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-              <span style={{ fontSize: 12, background: "rgba(255,255,255,0.2)", padding: "4px 8px", borderRadius: 4 }}>ADMIN MODE</span>
-              <button onClick={() => setIsAdmin(false)} style={{ background: "none", border: "1px solid white", color: "white", padding: "4px 8px", borderRadius: 4, cursor: "pointer", fontSize: 12 }}>Logout</button>
+              <span className="metadata" style={{ fontSize: 10, background: "rgba(255,255,255,0.15)", padding: "4px 8px", borderRadius: 2, letterSpacing: "0.1em" }}>ADMIN_MODE</span>
+              <button onClick={() => setIsAdmin(false)} style={{ background: "transparent", border: `1px solid ${PALETTE.accent}`, color: PALETTE.accent, padding: "6px 12px", borderRadius: 2, cursor: "pointer", fontSize: 11, fontFamily: 'var(--font-body)', textTransform: 'uppercase' }}>Logout</button>
             </div>
           ) : (
-            <button onClick={() => setShowLogin(true)} style={{ background: "rgba(255,255,255,0.1)", border: "1px solid white", color: "white", padding: "6px 12px", borderRadius: 8, cursor: "pointer" }}>🔐 Admin Login</button>
+            <button onClick={() => setShowLogin(true)} style={{ background: "rgba(255,255,255,0.1)", border: `1px solid rgba(255,255,255,0.3)`, color: "white", padding: "8px 16px", borderRadius: 2, cursor: "pointer", fontFamily: 'var(--font-body)', fontSize: 12 }}>🔐 Admin Login</button>
           )}
         </div>
       </header>
 
-      <nav style={{ background: "white", padding: "0 28px", display: "flex", gap: 20, borderBottom: "1px solid #ddd" }}>
+      <nav className="fade-in-panel stagger-1" style={{ background: "white", padding: "0 28px", display: "flex", gap: 32, borderBottom: `1px solid ${PALETTE.secondary}33` }}>
         {tabs.map(t => (
-          <button key={t.id} onClick={() => setActiveTab(t.id)} style={{ padding: "16px 0", border: "none", background: "none", cursor: "pointer", borderBottom: activeTab === t.id ? `3px solid ${PALETTE.teal}` : "none", color: activeTab === t.id ? PALETTE.teal : "#666", fontWeight: activeTab === t.id ? 700 : 500 }}>
-            {t.icon} {t.label}
+          <button key={t.id} onClick={() => setActiveTab(t.id)} style={{ padding: "18px 0", border: "none", background: "none", cursor: "pointer", borderBottom: activeTab === t.id ? `2px solid ${PALETTE.accent}` : "2px solid transparent", color: activeTab === t.id ? PALETTE.primary : PALETTE.textMuted, fontWeight: activeTab === t.id ? 700 : 500, fontFamily: 'var(--font-heading)', fontSize: 14, transition: "all 0.2s ease" }}>
+            <span style={{ marginRight: 8 }}>{t.icon}</span> {t.label}
           </button>
         ))}
       </nav>
 
-      <main style={{ padding: 28 }}>
+      <main style={{ padding: 28, flex: 1 }}>
         {activeTab === "dashboard" && (
           <div>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 20, marginBottom: 28 }}>
-              <StatCard label="Active Incidents" value={activeIncidents} accent="#ef4444" icon="🚨" />
-              <StatCard label="Resources Critical" value={criticalResources} accent="#f97316" icon="📦" />
-              <StatCard label="Volunteers Live" value={volunteers.length} accent={PALETTE.teal} icon="👥" />
-              <StatCard label="Deployed" value={deployedCount} accent={PALETTE.navy} icon="🚢" />
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 24, marginBottom: 32 }}>
+              <StatCard label="Active Incidents" value={activeIncidents} accent="#C0392B" icon="🚨" />
+              <StatCard label="Resources Critical" value={criticalResources} accent="#E67E22" icon="📦" />
+              <StatCard label="Volunteers Live" value={volunteers.length} accent={PALETTE.secondary} icon="👥" />
+              <StatCard label="Deployed" value={deployedCount} accent={PALETTE.primary} icon="🚢" />
             </div>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 400px", gap: 28 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 400px", gap: 32 }}>
               <IncidentMap selected={selectedIncident} incidents={incidents} predictions={predictions} onSelect={setSelectedIncident} />
-              <div style={{ background: "white", padding: 20, borderRadius: 16, height: "calc(100vh - 300px)", minHeight: 450, overflowY: "auto" }}>
-                <h3 style={{ marginBottom: 16, color: "black" }}>Live Incident Feed</h3>
+              <div className="fade-in-panel stagger-3" style={{ background: "white", padding: 24, borderRadius: 4, height: "calc(100vh - 300px)", minHeight: 450, overflowY: "auto", border: `1px solid ${PALETTE.secondary}1A` }}>
+                <h3 style={{ marginBottom: 20, color: PALETTE.textDark, borderBottom: `1px solid ${PALETTE.secondary}33`, paddingBottom: 12 }}>Live Incident Feed</h3>
                 {incidents.slice(0, 50).map(inc => (
                   <IncidentRow key={inc.id} inc={inc} onClick={setSelectedIncident} selected={selectedIncident?.id === inc.id} />
                 ))}
@@ -392,15 +392,15 @@ export default function App() {
         )}
 
         {activeTab === "incidents" && (
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(350px, 1fr))", gap: 20 }}>
-            {incidents.map(inc => (
-              <div key={inc.id} style={{ background: "white", padding: 20, borderRadius: 16, borderLeft: `5px solid ${SEVERITY_COLORS[inc.severity] || "#888"}`, color: "black" }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "start" }}>
-                  <h4 style={{ color: PALETTE.navy }}>{inc.type}</h4>
-                  <span style={{ fontSize: 10, padding: "2px 6px", borderRadius: 4, background: `${STATUS_COLORS[inc.status]}22`, color: STATUS_COLORS[inc.status], fontWeight: 700 }}>{inc.status.toUpperCase()}</span>
+          <div className="fade-in-panel stagger-2" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(350px, 1fr))", gap: 24 }}>
+            {incidents.map((inc, i) => (
+              <div key={inc.id} className={`output-line stagger-${(i % 4) + 1}`} style={{ background: "white", padding: 24, borderRadius: 4, borderLeft: `4px solid ${SEVERITY_COLORS[inc.severity] || PALETTE.textMuted}`, color: PALETTE.textDark, borderBottom: `1px solid ${PALETTE.secondary}1A` }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "start", marginBottom: 12 }}>
+                  <h4 style={{ color: PALETTE.primary, margin: 0 }}>{inc.type}</h4>
+                  <span className="metadata" style={{ fontSize: 9, padding: "2px 6px", borderRadius: 2, background: `${STATUS_COLORS[inc.status]}1A`, color: STATUS_COLORS[inc.status], fontWeight: 700, textTransform: 'uppercase' }}>{inc.status}</span>
                 </div>
-                <p style={{ fontSize: 13, margin: "8px 0" }}><strong>Location:</strong> {inc.location}</p>
-                <div style={{ display: "flex", gap: 15, fontSize: 12 }}>
+                <p style={{ fontSize: 13, margin: "12px 0", fontFamily: 'var(--font-body)' }}><strong>Location:</strong> {inc.location}</p>
+                <div style={{ display: "flex", gap: 20, fontSize: 11, color: PALETTE.textMuted, fontFamily: 'var(--font-metadata)' }}>
                    <span>👥 {inc.volunteers} Volunteers</span>
                    <span>📦 {inc.resources} Units</span>
                 </div>
@@ -412,78 +412,78 @@ export default function App() {
         {activeTab === "volunteers" && (
           <div>
             {isAdmin && (
-              <div style={{ background: "white", padding: 25, borderRadius: 16, marginBottom: 28, boxShadow: "0 4px 12px rgba(0,0,0,0.05)", color: "black" }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 15 }}>
-                  <h3 style={{ color: PALETTE.navy, margin: 0 }}>Register New Volunteer</h3>
-                  <button onClick={clearAllVolunteers} style={{ padding: "8px 15px", background: "none", color: "#ef4444", border: "1px solid #ef4444", borderRadius: 8, fontSize: 11, cursor: "pointer", fontWeight: 700 }}>🗑️ CLEAR DATABASE</button>
+              <div className="fade-in-panel stagger-2" style={{ background: "white", padding: 32, borderRadius: 4, marginBottom: 32, border: `1px solid ${PALETTE.secondary}1A`, color: PALETTE.textDark }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
+                  <h3 style={{ color: PALETTE.primary, margin: 0 }}>Register New Volunteer</h3>
+                  <button onClick={clearAllVolunteers} style={{ padding: "8px 16px", background: "transparent", color: "#C0392B", border: "1px solid #C0392B", borderRadius: 2, fontSize: 10, cursor: "pointer", fontWeight: 700, fontFamily: 'var(--font-body)' }}>🗑️ CLEAR DATABASE</button>
                 </div>
-                <form onSubmit={addVolunteer} style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr auto", gap: 15, alignItems: "end" }}>
+                <form onSubmit={addVolunteer} style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr auto", gap: 20, alignItems: "end" }}>
                   <div>
-                    <label style={{ fontSize: 12, fontWeight: 700, display: "block", marginBottom: 5 }}>Full Name</label>
-                    <input value={vForm.name} onChange={e => setVForm({...vForm, name: e.target.value})} placeholder="e.g. John Doe" style={{ width: "100%", padding: "10px", borderRadius: 8, border: "1px solid #ddd" }} />
+                    <label className="metadata" style={{ fontSize: 11, fontWeight: 700, display: "block", marginBottom: 8, color: PALETTE.textMuted }}>Full Name</label>
+                    <input value={vForm.name} onChange={e => setVForm({...vForm, name: e.target.value})} placeholder="e.g. John Doe" style={{ width: "100%", padding: "12px", borderRadius: 2 }} />
                   </div>
                   <div>
-                    <label style={{ fontSize: 12, fontWeight: 700, display: "block", marginBottom: 5 }}>Skills</label>
-                    <input value={vForm.skills} onChange={e => setVForm({...vForm, skills: e.target.value})} placeholder="e.g. Medical, Rescue" style={{ width: "100%", padding: "10px", borderRadius: 8, border: "1px solid #ddd" }} />
+                    <label className="metadata" style={{ fontSize: 11, fontWeight: 700, display: "block", marginBottom: 8, color: PALETTE.textMuted }}>Skills</label>
+                    <input value={vForm.skills} onChange={e => setVForm({...vForm, skills: e.target.value})} placeholder="e.g. Medical, Rescue" style={{ width: "100%", padding: "12px", borderRadius: 2 }} />
                   </div>
                   <div>
-                    <label style={{ fontSize: 12, fontWeight: 700, display: "block", marginBottom: 5 }}>Distance (e.g. 1.5 km)</label>
-                    <input value={vForm.location} onChange={e => setVForm({...vForm, location: e.target.value})} placeholder="e.g. 1.5" style={{ width: "100%", padding: "10px", borderRadius: 8, border: "1px solid #ddd" }} />
+                    <label className="metadata" style={{ fontSize: 11, fontWeight: 700, display: "block", marginBottom: 8, color: PALETTE.textMuted }}>Distance (km)</label>
+                    <input value={vForm.location} onChange={e => setVForm({...vForm, location: e.target.value})} placeholder="e.g. 1.5" style={{ width: "100%", padding: "12px", borderRadius: 2 }} />
                   </div>
-                  <button type="submit" style={{ padding: "11px 25px", background: PALETTE.teal, color: "white", border: "none", borderRadius: 8, fontWeight: 700 }}>Add</button>
+                  <button type="submit" style={{ padding: "13px 32px", background: PALETTE.secondary, color: "white", border: "none", borderRadius: 2, fontWeight: 700, fontFamily: 'var(--font-body)', cursor: 'pointer' }}>ADD</button>
                 </form>
               </div>
             )}
 
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: 20 }}>
+            <div className="fade-in-panel stagger-3" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: 24 }}>
               {volunteers.map(vol => {
                 const isDeployed = vol.status?.toLowerCase() === 'deployed';
                 return (
-                  <div key={vol.id} style={{ background: "white", padding: 20, borderRadius: 16, borderLeft: `5px solid ${isDeployed ? PALETTE.navy : PALETTE.teal}`, color: "black", boxShadow: "0 2px 8px rgba(0,0,0,0.05)" }}>
-                    <div style={{ display: "flex", gap: 15, alignItems: "center", marginBottom: 15 }}>
-                      <div style={{ width: 50, height: 50, borderRadius: "50%", background: isDeployed ? PALETTE.navy : PALETTE.seafoam, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, color: "white", fontSize: 20 }}>{vol.avatar}</div>
+                  <div key={vol.id} style={{ background: "white", padding: 24, borderRadius: 4, borderLeft: `4px solid ${isDeployed ? PALETTE.primary : PALETTE.secondary}`, color: PALETTE.textDark, borderBottom: `1px solid ${PALETTE.secondary}1A` }}>
+                    <div style={{ display: "flex", gap: 16, alignItems: "center", marginBottom: 20 }}>
+                      <div style={{ width: 48, height: 48, borderRadius: 2, background: isDeployed ? PALETTE.primary : PALETTE.secondary, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, color: "white", fontSize: 20, fontFamily: 'var(--font-heading)' }}>{vol.avatar}</div>
                       <div style={{ flex: 1 }}>
-                        <h4 style={{ color: PALETTE.navy, margin: 0 }}>{vol.name}</h4>
-                        <div style={{ 
+                        <h4 style={{ color: PALETTE.primary, margin: 0 }}>{vol.name}</h4>
+                        <div className="metadata" style={{ 
                           display: "inline-block", 
                           fontSize: 9, 
-                          fontWeight: 900, 
-                          padding: "2px 8px", 
-                          borderRadius: 10, 
-                          background: isDeployed ? `${PALETTE.navy}22` : `${PALETTE.teal}22`,
-                          color: isDeployed ? PALETTE.navy : PALETTE.teal,
+                          fontWeight: 700, 
+                          padding: "2px 6px", 
+                          borderRadius: 2, 
+                          background: isDeployed ? `${PALETTE.primary}1A` : `${PALETTE.secondary}1A`,
+                          color: isDeployed ? PALETTE.primary : PALETTE.secondary,
                           textTransform: "uppercase",
                           marginTop: 4
                         }}>
                           {vol.status}
                         </div>
                       </div>
-                      {isAdmin && <button onClick={() => deleteVolunteer(vol.id)} style={{ background: "none", border: "none", cursor: "pointer" }}>🗑️</button>}
+                      {isAdmin && <button onClick={() => deleteVolunteer(vol.id)} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 16 }}>🗑️</button>}
                     </div>
                     
-                    <div style={{ fontSize: 12, color: "#666", marginBottom: 12 }}>
-                        📍 {isDeployed ? "At Predicted Site: " : "Current Distance: "} <strong>{vol.location}</strong>
+                    <div className="metadata" style={{ fontSize: 11, color: PALETTE.textMuted, marginBottom: 16 }}>
+                        📍 {isDeployed ? "At Predicted Site: " : "Current Distance: "} <strong style={{ color: PALETTE.textDark }}>{vol.location}</strong>
                     </div>
 
-                    <div style={{ display: "flex", flexWrap: "wrap", gap: 5, marginBottom: 15 }}>
-                      {vol.skills.map((s, idx) => <span key={idx} style={{ fontSize: 10, background: "#f0f0f0", padding: "3px 8px", borderRadius: 4, color: "#666", fontWeight: 600 }}>{s}</span>)}
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 20 }}>
+                      {vol.skills.map((s, idx) => <span key={idx} className="metadata" style={{ fontSize: 9, background: PALETTE.surface, padding: "3px 8px", borderRadius: 2, color: PALETTE.textMuted, fontWeight: 700, textTransform: 'uppercase' }}>{s}</span>)}
                     </div>
 
                     {isAdmin && !isDeployed && (
                       <div>
                           {deployingId === vol.id ? (
-                            <div style={{ background: "#f9f9f9", padding: 10, borderRadius: 8, border: "1px solid #ddd" }}>
-                                <div style={{ fontSize: 11, fontWeight: 700, marginBottom: 8 }}>SELECT PREDICTED SITE:</div>
-                                {predictions.length === 0 ? <div style={{ fontSize: 11 }}>No sites found. Run AI first.</div> : (
-                                    <div style={{ maxHeight: 150, overflowY: "auto", display: "flex", flexDirection: "column", gap: 5 }}>
+                            <div style={{ background: PALETTE.surface, padding: 16, borderRadius: 2, border: `1px solid ${PALETTE.secondary}33` }}>
+                                <div className="metadata" style={{ fontSize: 10, fontWeight: 700, marginBottom: 12, color: PALETTE.textMuted, textTransform: 'uppercase' }}>Select Predicted Site:</div>
+                                {predictions.length === 0 ? <div className="metadata" style={{ fontSize: 11 }}>No sites found. Run AI first.</div> : (
+                                    <div style={{ maxHeight: 150, overflowY: "auto", display: "flex", flexDirection: "column", gap: 8 }}>
                                         {predictions.map(p => (
-                                            <button key={p.id} onClick={() => deployVolunteer(vol.id, p.location)} style={{ textAlign: "left", padding: "10px", borderRadius: 6, border: "2px solid #000", background: "white", fontSize: 12, cursor: "pointer", fontWeight: "700" }}>📍 {p.type} @ {p.location}</button>
+                                            <button key={p.id} onClick={() => deployVolunteer(vol.id, p.location)} style={{ textAlign: "left", padding: "12px", borderRadius: 2, border: `1px solid ${PALETTE.primary}`, background: "white", fontSize: 12, cursor: "pointer", fontWeight: "700", fontFamily: 'var(--font-body)' }}>📍 {p.type} @ {p.location}</button>
                                         ))}
                                     </div>
                                 )}
-                                <button onClick={() => setDeployingId(null)} style={{ width: "100%", marginTop: 8, background: "none", border: "none", fontSize: 10, color: "#666", cursor: "pointer", textDecoration: "underline" }}>Cancel</button>
+                                <button onClick={() => setDeployingId(null)} style={{ width: "100%", marginTop: 12, background: "none", border: "none", fontSize: 10, color: PALETTE.textMuted, cursor: "pointer", textDecoration: "underline", fontFamily: 'var(--font-body)' }}>Cancel</button>
                             </div>
-                        ) : <button onClick={() => setDeployingId(vol.id)} style={{ width: "100%", padding: "10px", background: PALETTE.navy, color: "white", border: "none", borderRadius: 8, fontWeight: 700, cursor: "pointer" }}>🚢 DEPLOY</button>}
+                        ) : <button onClick={() => setDeployingId(vol.id)} style={{ width: "100%", padding: "12px", background: PALETTE.primary, color: "white", border: "none", borderRadius: 2, fontWeight: 700, cursor: "pointer", fontFamily: 'var(--font-body)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Ship to Site</button>}
                     </div>
                   )}
                 </div>
@@ -494,72 +494,75 @@ export default function App() {
       )}
 
         {activeTab === "resources" && (
-          <>
+          <div className="fade-in-panel stagger-2">
           {/* 1. Global Resource Readiness Header (Oracle ROLLUP) */}
-          <div style={{ marginBottom: 28, background: PALETTE.navy, padding: 20, borderRadius: 16, color: "white" }}>
-            <h3 style={{ marginBottom: 10 }}>Global Resource Readiness (Oracle ROLLUP)</h3>
-            <div style={{ display: "flex", gap: 40, alignItems: "center" }}>
+          <div style={{ marginBottom: 32, background: PALETTE.primary, padding: 32, borderRadius: 4, color: "white", position: 'relative', overflow: 'hidden' }}>
+            <div className="noise-overlay" style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }} />
+            <h3 style={{ marginBottom: 16, color: "white", position: 'relative' }}>Global Resource Readiness</h3>
+            <div style={{ display: "flex", gap: 48, alignItems: "center", position: 'relative' }}>
               <div>
-                <div style={{ fontSize: 32, fontWeight: 800 }}>
+                <div style={{ fontSize: 40, fontWeight: 700, fontFamily: 'var(--font-heading)' }}>
                   {resources.reduce((acc, curr) => acc + curr.current, 0)} 
-                  <span style={{ fontSize: 16, opacity: 0.7 }}> Total Units</span>
+                  <span className="metadata" style={{ fontSize: 16, opacity: 0.7, marginLeft: 12 }}>Total Units</span>
                 </div>
-                <div style={{ fontSize: 12, opacity: 0.8 }}>Calculated via Server-Side Rollup</div>
+                <div className="metadata" style={{ fontSize: 10, opacity: 0.8, textTransform: 'uppercase', letterSpacing: '0.1em' }}>Calculated via Server-Side Rollup</div>
               </div>
               {/* Visual Gauge */}
-              <div style={{ flex: 1, height: 12, background: "rgba(255,255,255,0.2)", borderRadius: 6, overflow: "hidden" }}>
+              <div style={{ flex: 1, height: 8, background: "rgba(255,255,255,0.15)", borderRadius: 4, overflow: "hidden" }}>
                 <div style={{ 
                   width: `${(resources.reduce((acc, curr) => acc + curr.current, 0) / resources.reduce((acc, curr) => acc + curr.max, 0)) * 100}%`, 
                   height: "100%", 
-                  background: PALETTE.teal,
-                  transition: "width 0.5s ease-in-out" 
+                  background: PALETTE.accent,
+                  transition: "width 0.8s cubic-bezier(0.16, 1, 0.3, 1)" 
                 }} />
               </div>
             </div>
           </div>
           
           {/* 2. Individual Resource Cards Grid */}
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: 20 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: 24 }}>
             {resources.map(res => {
               const adjustment = editedResources[res.name] || 0;
               const displayValue = Math.max(0, Math.min(res.max, res.current + adjustment));
               const pct = (displayValue / res.max) * 100;
+              const isCritical = displayValue <= res.critical;
               
               return (
-                <div key={res.name} style={{ 
+                <div key={res.name} className="output-line" style={{ 
                   background: "white", 
-                  padding: 20, 
-                  borderRadius: 16, 
-                  border: displayValue <= res.critical ? "2px solid #ef4444" : "1px solid #eee", 
-                  color: "black" 
+                  padding: 24, 
+                  borderRadius: 4, 
+                  border: isCritical ? `1px solid #C0392B` : `1px solid ${PALETTE.secondary}1A`, 
+                  color: PALETTE.textDark,
+                  borderBottom: `2px solid ${isCritical ? '#C0392B' : PALETTE.secondary}33`
                 }}>
-                  <div style={{ display: "flex", justifyContent: "space-between" }}>
-                    <div style={{ fontWeight: 700, color: PALETTE.navy }}>{res.name}</div>
-                    <div style={{ fontSize: 11, color: "#888" }}>{res.unit.toUpperCase()}</div>
+                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 12 }}>
+                    <div style={{ fontWeight: 700, color: PALETTE.primary, fontFamily: 'var(--font-heading)', fontSize: 16 }}>{res.name}</div>
+                    <div className="metadata" style={{ fontSize: 10, color: PALETTE.textMuted, textTransform: 'uppercase' }}>{res.unit}</div>
                   </div>
                
-                  <div style={{ fontSize: 32, margin: "15px 0", fontWeight: 800 }}>
-                    {displayValue} <span style={{ fontSize: 16, color: "#aaa" }}>/ {res.max}</span>
+                  <div style={{ fontSize: 32, margin: "16px 0", fontWeight: 700, fontFamily: 'var(--font-body)', color: isCritical ? '#C0392B' : PALETTE.textDark }}>
+                    {displayValue} <span style={{ fontSize: 14, color: PALETTE.textMuted, fontWeight: 400 }}>/ {res.max}</span>
                   </div>
                   
-                  <div style={{ height: 10, background: "#f0f0f0", borderRadius: 5, marginBottom: 20, overflow: "hidden" }}>
+                  <div style={{ height: 6, background: PALETTE.surface, borderRadius: 3, marginBottom: 24, overflow: "hidden" }}>
                     <div style={{ 
                       width: `${pct}%`, 
                       height: "100%", 
-                      background: pct < 20 ? "#ef4444" : PALETTE.teal, 
-                      transition: "width 0.3s" 
+                      background: isCritical ? "#C0392B" : PALETTE.secondary, 
+                      transition: "width 0.5s ease" 
                     }} />
                   </div>
                   
                   {isAdmin && (
-                    <div style={{ borderTop: "1px solid #eee", paddingTop: 15 }}>
+                    <div style={{ borderTop: `1px solid ${PALETTE.surface}`, paddingTop: 20 }}>
                       <div style={{ display: "flex", gap: 12, marginBottom: 12 }}>
-                        <button onClick={() => handleAdjust(res.name, -1)} style={{ flex: 1, padding: "10px", borderRadius: 8, border: "2px solid #000", background: "white", fontSize: 20, fontWeight: "900", cursor: "pointer" }}>−</button>
-                        <button onClick={() => handleAdjust(res.name, 1)} style={{ flex: 1, padding: "10px", borderRadius: 8, border: "2px solid #000", background: "white", fontSize: 20, fontWeight: "900", cursor: "pointer" }}>+</button>
+                        <button onClick={() => handleAdjust(res.name, -1)} style={{ flex: 1, padding: "8px", borderRadius: 2, border: `1px solid ${PALETTE.secondary}`, background: "white", fontSize: 18, fontWeight: "700", cursor: "pointer", color: PALETTE.primary }}>−</button>
+                        <button onClick={() => handleAdjust(res.name, 1)} style={{ flex: 1, padding: "8px", borderRadius: 2, border: `1px solid ${PALETTE.secondary}`, background: "white", fontSize: 18, fontWeight: "700", cursor: "pointer", color: PALETTE.primary }}>+</button>
                       </div>
                       {adjustment !== 0 && (
-                        <button onClick={() => saveResource(res.name)} style={{ width: "100%", padding: "12px", background: PALETTE.navy, color: "white", border: "none", borderRadius: 8, fontWeight: 700, cursor: "pointer" }}>
-                          💾 SAVE TO ORACLE
+                        <button onClick={() => saveResource(res.name)} className="shake" style={{ width: "100%", padding: "12px", background: PALETTE.primary, color: "white", border: "none", borderRadius: 2, fontWeight: 700, cursor: "pointer", fontFamily: 'var(--font-body)', fontSize: 11, textTransform: 'uppercase' }}>
+                          💾 Save to Database
                         </button>
                       )}
                       </div>
@@ -568,21 +571,20 @@ export default function App() {
                   );
                 })}
               </div>
-          </>
+          </div>
         )}
 
         {activeTab === "predict" && (
-            <div>
+            <div className="fade-in-panel stagger-2">
               {/* Admin Control Panel for AI and Database Logic */}
               {isAdmin && (
-                <div style={{ marginBottom: 20, background: "white", padding: 20, borderRadius: 16, display: "flex", justifyContent: "space-between", alignItems: "center", color: "black" }}>
+                <div style={{ marginBottom: 32, background: "white", padding: 32, borderRadius: 4, display: "flex", justifyContent: "space-between", alignItems: "center", color: PALETTE.textDark, border: `1px solid ${PALETTE.secondary}1A` }}>
                   <div>
-                    <h4 style={{ color: PALETTE.navy }}>AI Engine & Automation</h4>
-                    <p style={{ fontSize: 12 }}>Refresh predictions and execute backend matching logic.</p>
+                    <h3 style={{ color: PALETTE.primary, marginBottom: 8 }}>AI Engine & Automation</h3>
+                    <p className="metadata" style={{ fontSize: 12, color: PALETTE.textMuted }}>Refresh predictions and execute backend matching logic.</p>
                   </div>
         
-                <div style={{ display: "flex", gap: "10px" }}>
-                  {/* New PL/SQL Auto-Match Button */}
+                <div style={{ display: "flex", gap: "16px" }}>
                   <button 
                     onClick={async () => {
                       try {
@@ -592,49 +594,59 @@ export default function App() {
                       } catch (err) { alert(err.message); }
                     }}
                     style={{ 
-                      padding: "10px 20px", 
-                      background: PALETTE.navy, 
-                      color: "white", 
-                      border: "none", 
-                      borderRadius: 8, 
+                      padding: "12px 24px", 
+                      background: "white", 
+                      color: PALETTE.primary, 
+                      border: `1px solid ${PALETTE.primary}`, 
+                      borderRadius: 2, 
                       cursor: "pointer", 
-                      fontWeight: 700 
+                      fontWeight: 700,
+                      fontFamily: 'var(--font-body)',
+                      fontSize: 12,
+                      textTransform: 'uppercase'
                     }}
                   >
                     🎯 Auto-Match (PL/SQL)
                   </button>
-                  {/* Existing AI Engine Button */}
                   <button 
                     onClick={runPrediction} 
                     disabled={isPredicting} 
                     style={{ 
-                      padding: "10px 20px", 
-                      background: PALETTE.teal, 
+                      padding: "12px 24px", 
+                      background: PALETTE.primary, 
                       color: "white", 
                       border: "none", 
-                      borderRadius: 8, 
+                      borderRadius: 2, 
                       fontWeight: 700,
-                      cursor: isPredicting ? "not-allowed" : "pointer"
+                      cursor: isPredicting ? "not-allowed" : "pointer",
+                      fontFamily: 'var(--font-body)',
+                      fontSize: 12,
+                      textTransform: 'uppercase'
                     }}
                   >
-                    {isPredicting ? "Processing..." : "🚀 Run AI Engine"}
+                    {isPredicting ? (
+                      <div className="loading-dots">
+                        <span></span><span></span><span></span>
+                      </div>
+                    ) : "🚀 Run AI Engine"}
                   </button>
                 </div>
               </div>
             )}
             {/* Prediction Display Grid */}
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: 20 }}>
-              {predictions.map(pred => (
-                <div key={pred.id} style={{ 
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: 24 }}>
+              {predictions.map((pred, i) => (
+                <div key={pred.id} className={`output-line stagger-${(i % 4) + 1}`} style={{ 
                   background: "white", 
-                  padding: 20, 
-                  borderRadius: 16, 
-                  borderLeft: `5px solid ${SEVERITY_COLORS[pred.severity] || PALETTE.teal}`, 
-                  color: "black" 
+                  padding: 24, 
+                  borderRadius: 4, 
+                  borderLeft: `4px solid ${SEVERITY_COLORS[pred.severity] || PALETTE.secondary}`, 
+                  color: PALETTE.textDark,
+                  borderBottom: `1px solid ${PALETTE.secondary}1A`
                 }}>
-                  <div style={{ fontWeight: 800, color: PALETTE.navy, fontSize: 18 }}>{pred.type}</div>
-                  <div style={{ fontSize: 22, color: PALETTE.teal, margin: "5px 0" }}>{pred.confidence}% Match</div>
-                  <div style={{ fontSize: 13 }}><strong>Location:</strong> {pred.location}</div>
+                  <div style={{ fontWeight: 700, color: PALETTE.primary, fontSize: 18, fontFamily: 'var(--font-heading)', marginBottom: 8 }}>{pred.type}</div>
+                  <div style={{ fontSize: 24, color: PALETTE.secondary, margin: "8px 0", fontFamily: 'var(--font-body)', fontWeight: 700 }}>{pred.confidence}% Match</div>
+                  <div className="metadata" style={{ fontSize: 12, color: PALETTE.textMuted }}><strong>Location:</strong> <span style={{ color: PALETTE.textDark }}>{pred.location}</span></div>
                 </div>
               ))}
             </div>
@@ -642,13 +654,12 @@ export default function App() {
         )}
         
         {activeTab === "audit" && isAdmin && (
-          <div style={{ background: "white", borderRadius: 16, padding: 20, color: "black" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+          <div className="fade-in-panel stagger-2" style={{ background: "white", borderRadius: 4, padding: 32, color: PALETTE.textDark, border: `1px solid ${PALETTE.secondary}1A` }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 32 }}>
               <div>
-                <h3 style={{ margin: 0, color: PALETTE.navy }}>Commander Action Logs (Oracle Auditing)</h3>
-                <p style={{ fontSize: 12, color: "#666" }}>Official system logs retrieved from USER_AUDIT_TRAIL</p>
+                <h3 style={{ margin: 0, color: PALETTE.primary }}>Commander Action Logs</h3>
+                <p className="metadata" style={{ fontSize: 11, color: PALETTE.textMuted, marginTop: 4 }}>OFFICIAL SYSTEM LOGS RETRIEVED FROM USER_AUDIT_TRAIL</p>
               </div>
-              {/* Admin-Only Export Button */}
               <button 
                 onClick={async () => {
                   try {
@@ -657,65 +668,76 @@ export default function App() {
                   } catch (err) { console.error("Export Error:", err);alert("Export failed"); }
                 }}
                 style={{ 
-                  background: PALETTE.teal, 
+                  background: PALETTE.secondary, 
                   color: "white", 
                   border: "none", 
-                  padding: "10px 18px", 
-                  borderRadius: 8, 
+                  padding: "12px 24px", 
+                  borderRadius: 2, 
                   cursor: "pointer", 
                   fontWeight: 700,
                   display: "flex",
                   alignItems: "center",
-                  gap: "8px"
+                  gap: "10px",
+                  fontFamily: 'var(--font-body)',
+                  fontSize: 11,
+                  textTransform: 'uppercase'
                 }}
               >
-                📄 Export Govt Briefing
+                📄 Export Briefing
               </button>
             </div>
-            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+            <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, fontFamily: 'var(--font-body)' }}>
               <thead>
-                <tr style={{ textAlign: "left", borderBottom: "2px solid #eee", color: "#888" }}>
-                  <th style={{ padding: 12 }}>Timestamp</th>
-                  <th style={{ padding: 12 }}>Commander</th>
-                  <th style={{ padding: 12 }}>Action</th>
-                  <th style={{ padding: 12 }}>Object</th>
-                  <th style={{ padding: 12 }}>Status</th>
+                <tr style={{ textAlign: "left", borderBottom: `2px solid ${PALETTE.surface}`, color: PALETTE.textMuted }}>
+                  <th style={{ padding: "12px 16px", fontWeight: 700 }}>TIMESTAMP</th>
+                  <th style={{ padding: "12px 16px", fontWeight: 700 }}>COMMANDER</th>
+                  <th style={{ padding: "12px 16px", fontWeight: 700 }}>ACTION</th>
+                  <th style={{ padding: "12px 16px", fontWeight: 700 }}>OBJECT</th>
+                  <th style={{ padding: "12px 16px", fontWeight: 700 }}>STATUS</th>
                 </tr>
               </thead>
               <tbody>
-              {/* You should map your 'auditLogs' state here */}
               {auditLogs.map((log, index) => (
-                <tr key={index} style={{ borderBottom: "1px solid #f9f9f9" }}>
-                  <td style={{ padding: 12, fontFamily: "monospace" }}>{log.TIMESTAMP}</td>
-                  <td style={{ padding: 12, fontWeight: 600 }}>{log.USERNAME}</td>
-                  <td style={{ padding: 12 }}>
+                <tr key={index} className="output-line" style={{ borderBottom: `1px solid ${PALETTE.surface}`, animationDelay: `${index * 30}ms` }}>
+                  <td className="metadata" style={{ padding: "12px 16px", fontSize: 11 }}>{log.TIMESTAMP}</td>
+                  <td style={{ padding: "12px 16px", fontWeight: 600, color: PALETTE.primary }}>{log.USERNAME}</td>
+                  <td style={{ padding: "12px 16px" }}>
                     <span style={{ 
-                      color: log.ACTION_NAME === 'DELETE' ? "#ef4444" : 
-                             log.ACTION_NAME === 'INSERT' ? PALETTE.teal : "#f59e0b",
-                      fontWeight: 700
+                      color: log.ACTION_NAME === 'DELETE' ? "#C0392B" : 
+                             log.ACTION_NAME === 'INSERT' ? PALETTE.secondary : PALETTE.primary,
+                      fontWeight: 700,
+                      fontSize: 11
                     }}>
                       {log.ACTION_NAME}
                     </span>
                   </td>
-                  <td style={{ padding: 12 }}>{log.OBJ_NAME}</td>
-                  <td style={{ padding: 12 }}>
-                    <span style={{ background: "#ecfdf5", color: "#059669", padding: "4px 8px", borderRadius: 4, fontSize: 11 }}>SUCCESS</span>
+                  <td style={{ padding: "12px 16px" }}>{log.OBJ_NAME}</td>
+                  <td style={{ padding: "12px 16px" }}>
+                    <span className="metadata" style={{ background: `${PALETTE.secondary}1A`, color: PALETTE.secondary, padding: "4px 8px", borderRadius: 2, fontSize: 10, fontWeight: 700 }}>SUCCESS</span>
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
+          </div>
         </div>)}
       </main>
 
       {showLogin && (
-        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 9999 }}>
-          <div style={{ background: "white", padding: 32, borderRadius: 16, width: 350, color: "black" }}>
-            <h2 style={{ marginBottom: 20 }}>Admin Login</h2>
-            <input id="admin-user" placeholder="Username" style={{ width: "100%", padding: 12, marginBottom: 12, borderRadius: 8, border: "1px solid #ddd" }} />
-            <input id="admin-pass" type="password" placeholder="Password" style={{ width: "100%", padding: 12, marginBottom: 20, borderRadius: 8, border: "1px solid #ddd" }} />
-            <button onClick={handleLogin} style={{ width: "100%", padding: 12, background: PALETTE.teal, color: "white", border: "none", borderRadius: 8, fontWeight: 700 }}>Login</button>
-            <button onClick={() => setShowLogin(false)} style={{ width: "100%", padding: 12, background: "none", color: "#666", border: "none", marginTop: 8 }}>Cancel</button>
+        <div style={{ position: "fixed", inset: 0, background: "rgba(13, 43, 37, 0.8)", backdropFilter: "blur(4px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 9999 }}>
+          <div className="fade-in-panel stagger-1" style={{ background: "white", padding: 40, borderRadius: 4, width: 400, color: PALETTE.textDark, border: `1px solid ${PALETTE.secondary}4D`, boxShadow: '0 20px 40px rgba(0,0,0,0.2)' }}>
+            <h2 style={{ marginBottom: 24, color: PALETTE.primary, textAlign: 'center' }}>Admin Access</h2>
+            <div style={{ marginBottom: 20 }}>
+              <label className="metadata" style={{ fontSize: 11, fontWeight: 700, display: "block", marginBottom: 8, color: PALETTE.textMuted }}>USERNAME</label>
+              <input id="admin-user" placeholder="Enter commander ID" style={{ width: "100%", padding: 14, borderRadius: 2 }} />
+            </div>
+            <div style={{ marginBottom: 32 }}>
+              <label className="metadata" style={{ fontSize: 11, fontWeight: 700, display: "block", marginBottom: 8, color: PALETTE.textMuted }}>PASSWORD</label>
+              <input id="admin-pass" type="password" placeholder="••••••••" style={{ width: "100%", padding: 14, borderRadius: 2 }} />
+            </div>
+            <button onClick={handleLogin} style={{ width: "100%", padding: 14, background: PALETTE.primary, color: "white", border: "none", borderRadius: 2, fontWeight: 700, fontFamily: 'var(--font-body)', fontSize: 13, cursor: 'pointer', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Authenticate</button>
+            <button onClick={() => setShowLogin(false)} style={{ padding: 12, background: "none", color: PALETTE.textMuted, border: "none", marginTop: 16, cursor: 'pointer', textDecoration: 'underline', width: '100%', fontSize: 11, fontFamily: 'var(--font-body)' }}>Abort</button>
           </div>
         </div>
       )}
