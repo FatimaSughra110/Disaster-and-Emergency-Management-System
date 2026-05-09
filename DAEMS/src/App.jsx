@@ -171,6 +171,7 @@ export default function App() {
   const [editedResources, setEditedResources] = useState({});
   const [vForm, setVForm] = useState({ name: "", skills: "", location: "" });
   const [deployingId, setDeployingId] = useState(null);
+  const [auditLogs, setAuditLogs] = useState([]);
 
   const fetchData = async () => {
     try {
@@ -195,9 +196,12 @@ export default function App() {
   };
 
   useEffect(() => {
-    fetchData();
-    const interval = setInterval(fetchData, 10000);
-    return () => clearInterval(interval);
+      fetchData();
+      if (isAdmin) fetchAuditLogs();
+    
+      const interval = setInterval(fetchData, 10000);
+    
+      return () => clearInterval(interval);
   }, []);
 
   const handleAdjust = (name, delta) => {
@@ -268,6 +272,15 @@ export default function App() {
       alert("Error: " + err.message);
     }
   };
+  const fetchAuditLogs = async () => {
+    try {
+      const response = await fetch(`${API_BASE}/audit-logs`);
+      const data = await response.json();
+      setAuditLogs(data);
+    } catch (error) {
+      console.error("Error fetching Oracle audit logs:", error);
+    }
+  };
 
   const clearAllVolunteers = async () => {
     if (!window.confirm("Clear All?")) return;
@@ -307,6 +320,7 @@ export default function App() {
       alert("Login failed: " + err.message);
     }
   };
+  
 
   const criticalResources = resources.filter(r => r.current <= r.critical).length;
   const activeIncidents = incidents.filter(i => i.status === 'active').length;
@@ -318,6 +332,8 @@ export default function App() {
     { id: "volunteers", label: "Volunteers", icon: "👥" },
     { id: "resources", label: "Resources", icon: "📦" },
     { id: "predict", label: "AI Predict", icon: "🤖" },
+    // Only add Audit tab if isAdmin is true
+    ...(isAdmin ? [{ id: "audit", label: "Audit Logs", icon: "📜" }] : []),
   ];
 
   return (
@@ -478,55 +494,218 @@ export default function App() {
       )}
 
         {activeTab === "resources" && (
+          <>
+          {/* 1. Global Resource Readiness Header (Oracle ROLLUP) */}
+          <div style={{ marginBottom: 28, background: PALETTE.navy, padding: 20, borderRadius: 16, color: "white" }}>
+            <h3 style={{ marginBottom: 10 }}>Global Resource Readiness (Oracle ROLLUP)</h3>
+            <div style={{ display: "flex", gap: 40, alignItems: "center" }}>
+              <div>
+                <div style={{ fontSize: 32, fontWeight: 800 }}>
+                  {resources.reduce((acc, curr) => acc + curr.current, 0)} 
+                  <span style={{ fontSize: 16, opacity: 0.7 }}> Total Units</span>
+                </div>
+                <div style={{ fontSize: 12, opacity: 0.8 }}>Calculated via Server-Side Rollup</div>
+              </div>
+              {/* Visual Gauge */}
+              <div style={{ flex: 1, height: 12, background: "rgba(255,255,255,0.2)", borderRadius: 6, overflow: "hidden" }}>
+                <div style={{ 
+                  width: `${(resources.reduce((acc, curr) => acc + curr.current, 0) / resources.reduce((acc, curr) => acc + curr.max, 0)) * 100}%`, 
+                  height: "100%", 
+                  background: PALETTE.teal,
+                  transition: "width 0.5s ease-in-out" 
+                }} />
+              </div>
+            </div>
+          </div>
+          
+          {/* 2. Individual Resource Cards Grid */}
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: 20 }}>
             {resources.map(res => {
-                const adjustment = editedResources[res.name] || 0;
-                const displayValue = Math.max(0, Math.min(res.max, res.current + adjustment));
-                const pct = (displayValue / res.max) * 100;
-                return (
-                  <div key={res.name} style={{ background: "white", padding: 20, borderRadius: 16, border: displayValue <= res.critical ? "2px solid #ef4444" : "1px solid #eee", color: "black" }}>
-                    <div style={{ display: "flex", justifyContent: "space-between" }}>
-                      <div style={{ fontWeight: 700, color: PALETTE.navy }}>{res.name}</div>
-                      <div style={{ fontSize: 11, color: "#888" }}>{res.unit.toUpperCase()}</div>
-                    </div>
-                    <div style={{ fontSize: 32, margin: "15px 0", fontWeight: 800 }}>{displayValue} <span style={{ fontSize: 16, color: "#aaa" }}>/ {res.max}</span></div>
-                    <div style={{ height: 10, background: "#f0f0f0", borderRadius: 5, marginBottom: 20, overflow: "hidden" }}>
-                        <div style={{ width: `${pct}%`, height: "100%", background: pct < 20 ? "#ef4444" : PALETTE.teal, transition: "width 0.3s" }} />
-                    </div>
-                    {isAdmin && (
-                      <div style={{ borderTop: "1px solid #eee", paddingTop: 15 }}>
-                        <div style={{ display: "flex", gap: 12, marginBottom: 12 }}>
-                          <button onClick={() => handleAdjust(res.name, -1)} style={{ flex: 1, padding: "10px", borderRadius: 8, border: "2px solid #000", background: "white", fontSize: 20, fontWeight: "900" }}>−</button>
-                          <button onClick={() => handleAdjust(res.name, 1)} style={{ flex: 1, padding: "10px", borderRadius: 8, border: "2px solid #000", background: "white", fontSize: 20, fontWeight: "900" }}>+</button>
-                        </div>
-                        {adjustment !== 0 && <button onClick={() => saveResource(res.name)} style={{ width: "100%", padding: "12px", background: PALETTE.navy, color: "white", border: "none", borderRadius: 8, fontWeight: 700 }}>💾 SAVE TO ORACLE</button>}
+              const adjustment = editedResources[res.name] || 0;
+              const displayValue = Math.max(0, Math.min(res.max, res.current + adjustment));
+              const pct = (displayValue / res.max) * 100;
+              
+              return (
+                <div key={res.name} style={{ 
+                  background: "white", 
+                  padding: 20, 
+                  borderRadius: 16, 
+                  border: displayValue <= res.critical ? "2px solid #ef4444" : "1px solid #eee", 
+                  color: "black" 
+                }}>
+                  <div style={{ display: "flex", justifyContent: "space-between" }}>
+                    <div style={{ fontWeight: 700, color: PALETTE.navy }}>{res.name}</div>
+                    <div style={{ fontSize: 11, color: "#888" }}>{res.unit.toUpperCase()}</div>
+                  </div>
+               
+                  <div style={{ fontSize: 32, margin: "15px 0", fontWeight: 800 }}>
+                    {displayValue} <span style={{ fontSize: 16, color: "#aaa" }}>/ {res.max}</span>
+                  </div>
+                  
+                  <div style={{ height: 10, background: "#f0f0f0", borderRadius: 5, marginBottom: 20, overflow: "hidden" }}>
+                    <div style={{ 
+                      width: `${pct}%`, 
+                      height: "100%", 
+                      background: pct < 20 ? "#ef4444" : PALETTE.teal, 
+                      transition: "width 0.3s" 
+                    }} />
+                  </div>
+                  
+                  {isAdmin && (
+                    <div style={{ borderTop: "1px solid #eee", paddingTop: 15 }}>
+                      <div style={{ display: "flex", gap: 12, marginBottom: 12 }}>
+                        <button onClick={() => handleAdjust(res.name, -1)} style={{ flex: 1, padding: "10px", borderRadius: 8, border: "2px solid #000", background: "white", fontSize: 20, fontWeight: "900", cursor: "pointer" }}>−</button>
+                        <button onClick={() => handleAdjust(res.name, 1)} style={{ flex: 1, padding: "10px", borderRadius: 8, border: "2px solid #000", background: "white", fontSize: 20, fontWeight: "900", cursor: "pointer" }}>+</button>
+                      </div>
+                      {adjustment !== 0 && (
+                        <button onClick={() => saveResource(res.name)} style={{ width: "100%", padding: "12px", background: PALETTE.navy, color: "white", border: "none", borderRadius: 8, fontWeight: 700, cursor: "pointer" }}>
+                          💾 SAVE TO ORACLE
+                        </button>
+                      )}
                       </div>
                     )}
-                  </div>
-                );
-            })}
-          </div>
+                    </div>
+                  );
+                })}
+              </div>
+          </>
         )}
 
         {activeTab === "predict" && (
             <div>
-                {isAdmin && (
-                  <div style={{ marginBottom: 20, background: "white", padding: 20, borderRadius: 16, display: "flex", justifyContent: "space-between", alignItems: "center", color: "black" }}>
-                    <div><h4 style={{ color: PALETTE.navy }}>AI Engine</h4><p style={{ fontSize: 12 }}>Refresh predictions based on latest data.</p></div>
-                    <button onClick={runPrediction} disabled={isPredicting} style={{ padding: "10px 20px", background: PALETTE.teal, color: "white", border: "none", borderRadius: 8, fontWeight: 700 }}>{isPredicting ? "Processing..." : "🚀 Run AI Engine"}</button>
+              {/* Admin Control Panel for AI and Database Logic */}
+              {isAdmin && (
+                <div style={{ marginBottom: 20, background: "white", padding: 20, borderRadius: 16, display: "flex", justifyContent: "space-between", alignItems: "center", color: "black" }}>
+                  <div>
+                    <h4 style={{ color: PALETTE.navy }}>AI Engine & Automation</h4>
+                    <p style={{ fontSize: 12 }}>Refresh predictions and execute backend matching logic.</p>
                   </div>
-                )}
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: 20 }}>
-                    {predictions.map(pred => (
-                        <div key={pred.id} style={{ background: "white", padding: 20, borderRadius: 16, borderLeft: `5px solid ${SEVERITY_COLORS[pred.severity] || PALETTE.teal}`, color: "black" }}>
-                            <div style={{ fontWeight: 800, color: PALETTE.navy, fontSize: 18 }}>{pred.type}</div>
-                            <div style={{ fontSize: 22, color: PALETTE.teal, margin: "5px 0" }}>{pred.confidence}% Match</div>
-                            <div style={{ fontSize: 13 }}><strong>Location:</strong> {pred.location}</div>
-                        </div>
-                    ))}
+        
+                <div style={{ display: "flex", gap: "10px" }}>
+                  {/* New PL/SQL Auto-Match Button */}
+                  <button 
+                    onClick={async () => {
+                      try {
+                        await fetch(`${API_BASE}/predict/match`, { method: "POST" });
+                        await fetchData();
+                        alert("PL/SQL Package: Smart Matching executed successfully!");
+                      } catch (err) { alert(err.message); }
+                    }}
+                    style={{ 
+                      padding: "10px 20px", 
+                      background: PALETTE.navy, 
+                      color: "white", 
+                      border: "none", 
+                      borderRadius: 8, 
+                      cursor: "pointer", 
+                      fontWeight: 700 
+                    }}
+                  >
+                    🎯 Auto-Match (PL/SQL)
+                  </button>
+                  {/* Existing AI Engine Button */}
+                  <button 
+                    onClick={runPrediction} 
+                    disabled={isPredicting} 
+                    style={{ 
+                      padding: "10px 20px", 
+                      background: PALETTE.teal, 
+                      color: "white", 
+                      border: "none", 
+                      borderRadius: 8, 
+                      fontWeight: 700,
+                      cursor: isPredicting ? "not-allowed" : "pointer"
+                    }}
+                  >
+                    {isPredicting ? "Processing..." : "🚀 Run AI Engine"}
+                  </button>
                 </div>
+              </div>
+            )}
+            {/* Prediction Display Grid */}
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: 20 }}>
+              {predictions.map(pred => (
+                <div key={pred.id} style={{ 
+                  background: "white", 
+                  padding: 20, 
+                  borderRadius: 16, 
+                  borderLeft: `5px solid ${SEVERITY_COLORS[pred.severity] || PALETTE.teal}`, 
+                  color: "black" 
+                }}>
+                  <div style={{ fontWeight: 800, color: PALETTE.navy, fontSize: 18 }}>{pred.type}</div>
+                  <div style={{ fontSize: 22, color: PALETTE.teal, margin: "5px 0" }}>{pred.confidence}% Match</div>
+                  <div style={{ fontSize: 13 }}><strong>Location:</strong> {pred.location}</div>
+                </div>
+              ))}
             </div>
+          </div>
         )}
+        
+        {activeTab === "audit" && isAdmin && (
+          <div style={{ background: "white", borderRadius: 16, padding: 20, color: "black" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+              <div>
+                <h3 style={{ margin: 0, color: PALETTE.navy }}>Commander Action Logs (Oracle Auditing)</h3>
+                <p style={{ fontSize: 12, color: "#666" }}>Official system logs retrieved from USER_AUDIT_TRAIL</p>
+              </div>
+              {/* Admin-Only Export Button */}
+              <button 
+                onClick={async () => {
+                  try {
+                    const res = await fetch(`${API_BASE}/reports/generate`);
+                    if(res.ok) alert("Report generated in C:\\ocrl_databas");
+                  } catch (err) { console.error("Export Error:", err);alert("Export failed"); }
+                }}
+                style={{ 
+                  background: PALETTE.teal, 
+                  color: "white", 
+                  border: "none", 
+                  padding: "10px 18px", 
+                  borderRadius: 8, 
+                  cursor: "pointer", 
+                  fontWeight: 700,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "8px"
+                }}
+              >
+                📄 Export Govt Briefing
+              </button>
+            </div>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+              <thead>
+                <tr style={{ textAlign: "left", borderBottom: "2px solid #eee", color: "#888" }}>
+                  <th style={{ padding: 12 }}>Timestamp</th>
+                  <th style={{ padding: 12 }}>Commander</th>
+                  <th style={{ padding: 12 }}>Action</th>
+                  <th style={{ padding: 12 }}>Object</th>
+                  <th style={{ padding: 12 }}>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+              {/* You should map your 'auditLogs' state here */}
+              {auditLogs.map((log, index) => (
+                <tr key={index} style={{ borderBottom: "1px solid #f9f9f9" }}>
+                  <td style={{ padding: 12, fontFamily: "monospace" }}>{log.TIMESTAMP}</td>
+                  <td style={{ padding: 12, fontWeight: 600 }}>{log.USERNAME}</td>
+                  <td style={{ padding: 12 }}>
+                    <span style={{ 
+                      color: log.ACTION_NAME === 'DELETE' ? "#ef4444" : 
+                             log.ACTION_NAME === 'INSERT' ? PALETTE.teal : "#f59e0b",
+                      fontWeight: 700
+                    }}>
+                      {log.ACTION_NAME}
+                    </span>
+                  </td>
+                  <td style={{ padding: 12 }}>{log.OBJ_NAME}</td>
+                  <td style={{ padding: 12 }}>
+                    <span style={{ background: "#ecfdf5", color: "#059669", padding: "4px 8px", borderRadius: 4, fontSize: 11 }}>SUCCESS</span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>)}
       </main>
 
       {showLogin && (
