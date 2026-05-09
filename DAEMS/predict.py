@@ -3,6 +3,7 @@ import oracledb
 import pandas as pd
 from dotenv import load_dotenv
 import random
+import sys
 
 load_dotenv()
 
@@ -86,4 +87,6 @@ def generate_predictions():
             conn.close()
 
 if __name__ == "__main__":
+    if hasattr(sys.stdout, 'reconfigure'):
+        sys.stdout.reconfigure(encoding='utf-8')
     generate_predictions()
