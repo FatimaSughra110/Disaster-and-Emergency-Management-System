@@ -245,6 +245,100 @@ app.delete('/api/incidents/:id', async (req, res) => {
   }
 });
 
+app.post('/api/predict/match', async (req, res) => {
+  const { incidentId } = req.body;
+  try {
+    // Calling the PL/SQL package you created in Oracle
+    await db.execute(
+      `BEGIN volunteer_mgmt.match_and_deploy(:id); END;`,
+      { id: incidentId }
+    );
+    res.json({ success: true, message: "Smart Matching completed in Oracle" });
+  } catch (err) {
+    res.status(500).json({ error: "Package Execution Error", message: err.message });
+  }
+});
+
+app.post('/api/deploy-full', async (req, res) => {
+  const { volunteerId, incidentId, resourceName } = req.body;
+  
+  // Note: This requires a custom db.execute or using a raw connection to manage the transaction
+  let conn;
+  try {
+    conn = await oracledb.getConnection();
+    
+    // Step 1: Update Volunteer
+    await conn.execute(
+      `UPDATE volunteers SET status = 'deployed' WHERE volunteer_id = :v_id`,
+      { v_id: volunteerId }, { autoCommit: false }
+    );
+
+    // Step 2: Deduct Resource
+    await conn.execute(
+      `UPDATE resources SET current_stock = current_stock - 1 WHERE name = :r_name`,
+      { r_name: resourceName }, { autoCommit: false }
+    );
+
+    // Step 3: Commit both changes together
+    await conn.commit();
+    res.json({ success: true, message: "Transaction successful (ACID compliant)" });
+  } catch (err) {
+    if (conn) await conn.rollback(); // Undo everything if one fails
+    res.status(500).json({ error: "Transaction Failed", message: err.message });
+  } finally {
+    if (conn) await conn.close();
+  }
+});
+
+app.get('/api/reports/generate', async (req, res) => {
+  try {
+    // This calls the procedure you just compiled in SQL*Plus
+    await db.execute(`BEGIN generate_disaster_report; END;`, [], { autoCommit: true });
+    res.json({ success: true, message: "Official report generated and logged in Oracle." });
+  } catch (err) {
+    res.status(500).json({ error: "Export Error", message: err.message });
+  }
+});
+
+app.get('/api/resources/summary', async (req, res) => {
+  try {
+    // This query calculates individual totals and a grand total (where NAME is NULL)
+    const result = await db.execute(
+      `SELECT NAME as "name", SUM(CURRENT_STOCK) as "total" 
+       FROM RESOURCES 
+       GROUP BY ROLLUP(NAME)`,
+      [], { outFormat: oracledb.OUT_FORMAT_OBJECT }
+    );
+    res.json(result.rows);
+  } catch (err) {
+    res.status(500).json({ error: "Summary Error", message: err.message });
+  }
+});
+
+// GET: Audit Logs (Oracle System Trail + Custom Manual Logs)
+app.get('/api/audit-logs', async (req, res) => {
+  try {
+    const result = await db.execute(
+      `SELECT commander as "commander", action as "action", 
+              object as "object", timestamp as "timestamp"
+       FROM (
+           SELECT username AS commander, action_name AS action, obj_name AS object, timestamp 
+           FROM user_audit_trail
+           UNION ALL
+           SELECT commander, action, object, timestamp 
+           FROM audit_logs
+       )
+       ORDER BY "timestamp" DESC`,
+      [], { outFormat: oracledb.OUT_FORMAT_OBJECT }
+    );
+    res.json(result.rows);
+  } catch (err) {
+    console.error("Audit Fetch Error:", err);
+    res.status(500).json({ error: "Database Error", message: err.message });
+  }
+});
+
+
 // Final Error Handling - Always JSON
 app.use((req, res) => {
   res.status(404).json({ error: "Endpoint not found", path: req.path });

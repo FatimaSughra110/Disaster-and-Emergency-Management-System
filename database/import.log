@@ -1,0 +1,10 @@
+;;; 
+Import: Release 19.0.0.0.0 - Production on Sat May 9 08:44:33 2026
+Version 19.3.0.0.0
+
+Copyright (c) 1982, 2019, Oracle and/or its affiliates.  All rights reserved.
+;;; 
+Connected to: Oracle Database 19c Enterprise Edition Release 19.0.0.0.0 - Production
+ORA-39000: bad dump file specification
+ORA-39155: error expanding dump file name "C:\Users\sdc\Desktop\Semester 7th\DMS LAB\The_Disaster_and_Emergency_Management_System\database\PROJECTDB_EXPORT.DMP"
+ORA-48128: opening of a symbolic link is disallowed
