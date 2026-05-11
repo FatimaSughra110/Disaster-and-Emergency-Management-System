@@ -60,7 +60,9 @@ CREATE TABLE predictions (
     timeframe VARCHAR2(50),
     conditions VARCHAR2(255),
     location VARCHAR2(255),
-    severity VARCHAR2(20)
+    severity VARCHAR2(20),
+    latitude NUMBER,
+    longitude NUMBER
 );
 
 -- Insert default admin

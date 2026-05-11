@@ -16,6 +16,20 @@ const PORT = process.env.PORT || 3001;
 app.use(cors());
 app.use(express.json());
 
+// Audit Logger Helper
+const auditLog = async (action, object) => {
+  try {
+    await db.execute(
+      `INSERT INTO audit_logs (COMMANDER, ACTION, OBJECT, TIMESTAMP) 
+       VALUES ('admin', :v_action, :v_object, CURRENT_TIMESTAMP)`,
+      { v_action: action, v_object: object },
+      { autoCommit: true }
+    );
+  } catch (err) {
+    console.error("Audit Logging Error:", err);
+  }
+};
+
 // Root route for connection testing
 app.get('/', (req, res) => {
   res.json({ 
@@ -78,6 +92,7 @@ app.post('/api/volunteers', async (req, res) => {
       { v_name: name, v_skills: skills, v_loc: location || 'unknown', v_avatar: avatar },
       { autoCommit: true }
     );
+    await auditLog('INSERT', `Volunteer: ${name}`);
     res.json({ success: true, message: "Volunteer added successfully" });
   } catch (err) {
     res.status(500).json({ error: "Database Insertion Error", message: err.message });
@@ -92,6 +107,7 @@ app.delete('/api/volunteers/:id', async (req, res) => {
       { id: req.params.id },
       { autoCommit: true }
     );
+    await auditLog('DELETE', `Volunteer ID: ${req.params.id}`);
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: "Database Deletion Error", message: err.message });
@@ -112,6 +128,7 @@ app.post('/api/volunteers/deploy', async (req, res) => {
       { v_loc: location, v_id: volunteerId },
       { autoCommit: true }
     );
+    await auditLog('DEPLOY', `Volunteer ID: ${volunteerId} to ${location}`);
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: "Database Update Error", message: err.message });
@@ -122,6 +139,7 @@ app.post('/api/volunteers/deploy', async (req, res) => {
 app.post('/api/volunteers/clear', async (req, res) => {
   try {
     await db.execute(`DELETE FROM volunteers`, [], { autoCommit: true });
+    await auditLog('TRUNCATE', 'All Volunteers');
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: "Database Error", message: err.message });
@@ -154,6 +172,7 @@ app.post('/api/resources/update', async (req, res) => {
       { v_name: name, v_change: change },
       { autoCommit: true }
     );
+    await auditLog('UPDATE', `Resource: ${name} (Change: ${change})`);
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: "Database Error", message: err.message });
@@ -225,6 +244,7 @@ app.post('/api/incidents', async (req, res) => {
       { v_id: id, v_type: type, v_severity: severity, v_loc: location, v_lat: lat, v_lng: lng, v_time: time, v_status: status },
       { autoCommit: true }
     );
+    await auditLog('INSERT', `Incident: ${type} at ${location}`);
     res.json({ success: true, id });
   } catch (err) {
     res.status(500).json({ error: "Database Error", message: err.message });
@@ -239,11 +259,89 @@ app.delete('/api/incidents/:id', async (req, res) => {
       { id: req.params.id },
       { autoCommit: true }
     );
+    await auditLog('DELETE', `Incident ID: ${req.params.id}`);
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: "Database Error", message: err.message });
   }
 });
+
+app.post('/api/deploy-full', async (req, res) => {
+  const { volunteerId, incidentId, resourceName } = req.body;
+  
+  // Note: This requires a custom db.execute or using a raw connection to manage the transaction
+  let conn;
+  try {
+    conn = await oracledb.getConnection();
+    
+    // Step 1: Update Volunteer
+    await conn.execute(
+      `UPDATE volunteers SET status = 'deployed' WHERE volunteer_id = :v_id`,
+      { v_id: volunteerId }, { autoCommit: false }
+    );
+
+    // Step 2: Deduct Resource
+    await conn.execute(
+      `UPDATE resources SET current_stock = current_stock - 1 WHERE name = :r_name`,
+      { r_name: resourceName }, { autoCommit: false }
+    );
+
+    // Step 3: Commit both changes together
+    await conn.commit();
+    res.json({ success: true, message: "Transaction successful (ACID compliant)" });
+  } catch (err) {
+    if (conn) await conn.rollback(); // Undo everything if one fails
+    res.status(500).json({ error: "Transaction Failed", message: err.message });
+  } finally {
+    if (conn) await conn.close();
+  }
+});
+
+app.get('/api/reports/generate', async (req, res) => {
+  try {
+    // This calls the procedure you just compiled in SQL*Plus
+    await db.execute(`BEGIN generate_disaster_report; END;`, [], { autoCommit: true });
+    res.json({ success: true, message: "Official report generated and logged in Oracle." });
+  } catch (err) {
+    res.status(500).json({ error: "Export Error", message: err.message });
+  }
+});
+
+app.get('/api/resources/summary', async (req, res) => {
+  try {
+    // This query calculates individual totals and a grand total (where NAME is NULL)
+    const result = await db.execute(
+      `SELECT NAME as "name", SUM(CURRENT_STOCK) as "total" 
+       FROM RESOURCES 
+       GROUP BY ROLLUP(NAME)`,
+      [], { outFormat: oracledb.OUT_FORMAT_OBJECT }
+    );
+    res.json(result.rows);
+  } catch (err) {
+    res.status(500).json({ error: "Summary Error", message: err.message });
+  }
+});
+
+// GET: Audit Logs (Oracle System Trail + Custom Manual Logs)
+app.get('/api/audit-logs', async (req, res) => {
+  try {
+    const result = await db.execute(
+      `SELECT LOG_ID AS "id",
+              TO_CHAR(TIMESTAMP, 'YYYY-MM-DD HH24:MI:SS') AS "timestamp", 
+              COMMANDER AS "username", 
+              ACTION AS "action", 
+              OBJECT AS "object"
+       FROM audit_logs
+       ORDER BY TIMESTAMP DESC`,
+      [], { outFormat: oracledb.OUT_FORMAT_OBJECT }
+    );
+    res.json(result.rows);
+  } catch (err) {
+    console.error("Audit Fetch Error:", err);
+    res.status(500).json({ error: "Database Error", message: err.message });
+  }
+});
+
 
 // Final Error Handling - Always JSON
 app.use((req, res) => {
