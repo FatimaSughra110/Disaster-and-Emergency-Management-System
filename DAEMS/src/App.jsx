@@ -192,6 +192,15 @@ export default function App() {
       setVolunteers(vol);
       setResources(res);
       setPredictions(pred);
+      
+      if (isAdmin) {
+        const auditRes = await fetch(`${API_BASE}/audit-logs`);
+        if (auditRes.ok) {
+          const auditData = await auditRes.json();
+          setAuditLogs(auditData);
+        }
+      }
+
       setConnectionError(null);
     } catch (err) {
       setConnectionError(err.message);
@@ -317,16 +326,10 @@ export default function App() {
   };
 
   useEffect(() => {
-    const init = async () => {
-      await fetchData();
-      if (isAdmin) await fetchAuditLogs();
-    };
-    init();
-  
+    fetchData();
     const interval = setInterval(fetchData, 10000);
-  
     return () => clearInterval(interval);
-  }, [isAdmin]);
+  }, [isAdmin, activeTab]);
 
   const criticalResources = resources.filter(r => r.current <= r.critical).length;
   const activeIncidents = incidents.filter(i => i.status === 'active').length;
@@ -586,29 +589,6 @@ export default function App() {
         
                 <div style={{ display: "flex", gap: "16px" }}>
                   <button 
-                    onClick={async () => {
-                      try {
-                        await fetch(`${API_BASE}/predict/match`, { method: "POST" });
-                        await fetchData();
-                        alert("PL/SQL Package: Smart Matching executed successfully!");
-                      } catch (err) { alert(err.message); }
-                    }}
-                    style={{ 
-                      padding: "12px 24px", 
-                      background: "white", 
-                      color: PALETTE.primary, 
-                      border: `1px solid ${PALETTE.primary}`, 
-                      borderRadius: 2, 
-                      cursor: "pointer", 
-                      fontWeight: 700,
-                      fontFamily: 'var(--font-body)',
-                      fontSize: 12,
-                      textTransform: 'uppercase'
-                    }}
-                  >
-                    🎯 Auto-Match (PL/SQL)
-                  </button>
-                  <button 
                     onClick={runPrediction} 
                     disabled={isPredicting} 
                     style={{ 
@@ -699,20 +679,20 @@ export default function App() {
               </thead>
               <tbody>
               {auditLogs.map((log, index) => (
-                <tr key={index} className="output-line" style={{ borderBottom: `1px solid ${PALETTE.surface}`, animationDelay: `${index * 30}ms` }}>
-                  <td className="metadata" style={{ padding: "12px 16px", fontSize: 11 }}>{log.TIMESTAMP}</td>
-                  <td style={{ padding: "12px 16px", fontWeight: 600, color: PALETTE.primary }}>{log.USERNAME}</td>
+                <tr key={log.id || index} className="output-line" style={{ borderBottom: `1px solid ${PALETTE.surface}`, animationDelay: `${index * 30}ms` }}>
+                  <td className="metadata" style={{ padding: "12px 16px", fontSize: 11 }}>{log.timestamp}</td>
+                  <td style={{ padding: "12px 16px", fontWeight: 600, color: PALETTE.primary }}>{log.username}</td>
                   <td style={{ padding: "12px 16px" }}>
                     <span style={{ 
-                      color: log.ACTION_NAME === 'DELETE' ? "#C0392B" : 
-                             log.ACTION_NAME === 'INSERT' ? PALETTE.secondary : PALETTE.primary,
+                      color: log.action === 'DELETE' ? "#C0392B" : 
+                             log.action === 'INSERT' ? PALETTE.secondary : PALETTE.primary,
                       fontWeight: 700,
                       fontSize: 11
                     }}>
-                      {log.ACTION_NAME}
+                      {log.action}
                     </span>
                   </td>
-                  <td style={{ padding: "12px 16px" }}>{log.OBJ_NAME}</td>
+                  <td style={{ padding: "12px 16px" }}>{log.object}</td>
                   <td style={{ padding: "12px 16px" }}>
                     <span className="metadata" style={{ background: `${PALETTE.secondary}1A`, color: PALETTE.secondary, padding: "4px 8px", borderRadius: 2, fontSize: 10, fontWeight: 700 }}>SUCCESS</span>
                   </td>

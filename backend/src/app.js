@@ -16,6 +16,20 @@ const PORT = process.env.PORT || 3001;
 app.use(cors());
 app.use(express.json());
 
+// Audit Logger Helper
+const auditLog = async (action, object) => {
+  try {
+    await db.execute(
+      `INSERT INTO audit_logs (COMMANDER, ACTION, OBJECT, TIMESTAMP) 
+       VALUES ('admin', :v_action, :v_object, CURRENT_TIMESTAMP)`,
+      { v_action: action, v_object: object },
+      { autoCommit: true }
+    );
+  } catch (err) {
+    console.error("Audit Logging Error:", err);
+  }
+};
+
 // Root route for connection testing
 app.get('/', (req, res) => {
   res.json({ 
@@ -78,6 +92,7 @@ app.post('/api/volunteers', async (req, res) => {
       { v_name: name, v_skills: skills, v_loc: location || 'unknown', v_avatar: avatar },
       { autoCommit: true }
     );
+    await auditLog('INSERT', `Volunteer: ${name}`);
     res.json({ success: true, message: "Volunteer added successfully" });
   } catch (err) {
     res.status(500).json({ error: "Database Insertion Error", message: err.message });
@@ -92,6 +107,7 @@ app.delete('/api/volunteers/:id', async (req, res) => {
       { id: req.params.id },
       { autoCommit: true }
     );
+    await auditLog('DELETE', `Volunteer ID: ${req.params.id}`);
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: "Database Deletion Error", message: err.message });
@@ -112,6 +128,7 @@ app.post('/api/volunteers/deploy', async (req, res) => {
       { v_loc: location, v_id: volunteerId },
       { autoCommit: true }
     );
+    await auditLog('DEPLOY', `Volunteer ID: ${volunteerId} to ${location}`);
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: "Database Update Error", message: err.message });
@@ -122,6 +139,7 @@ app.post('/api/volunteers/deploy', async (req, res) => {
 app.post('/api/volunteers/clear', async (req, res) => {
   try {
     await db.execute(`DELETE FROM volunteers`, [], { autoCommit: true });
+    await auditLog('TRUNCATE', 'All Volunteers');
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: "Database Error", message: err.message });
@@ -154,6 +172,7 @@ app.post('/api/resources/update', async (req, res) => {
       { v_name: name, v_change: change },
       { autoCommit: true }
     );
+    await auditLog('UPDATE', `Resource: ${name} (Change: ${change})`);
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: "Database Error", message: err.message });
@@ -225,6 +244,7 @@ app.post('/api/incidents', async (req, res) => {
       { v_id: id, v_type: type, v_severity: severity, v_loc: location, v_lat: lat, v_lng: lng, v_time: time, v_status: status },
       { autoCommit: true }
     );
+    await auditLog('INSERT', `Incident: ${type} at ${location}`);
     res.json({ success: true, id });
   } catch (err) {
     res.status(500).json({ error: "Database Error", message: err.message });
@@ -239,23 +259,10 @@ app.delete('/api/incidents/:id', async (req, res) => {
       { id: req.params.id },
       { autoCommit: true }
     );
+    await auditLog('DELETE', `Incident ID: ${req.params.id}`);
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: "Database Error", message: err.message });
-  }
-});
-
-app.post('/api/predict/match', async (req, res) => {
-  const { incidentId } = req.body;
-  try {
-    // Calling the PL/SQL package you created in Oracle
-    await db.execute(
-      `BEGIN volunteer_mgmt.match_and_deploy(:id); END;`,
-      { id: incidentId }
-    );
-    res.json({ success: true, message: "Smart Matching completed in Oracle" });
-  } catch (err) {
-    res.status(500).json({ error: "Package Execution Error", message: err.message });
   }
 });
 
@@ -319,16 +326,13 @@ app.get('/api/resources/summary', async (req, res) => {
 app.get('/api/audit-logs', async (req, res) => {
   try {
     const result = await db.execute(
-      `SELECT commander as "commander", action as "action", 
-              object as "object", timestamp as "timestamp"
-       FROM (
-           SELECT username AS commander, action_name AS action, obj_name AS object, timestamp 
-           FROM user_audit_trail
-           UNION ALL
-           SELECT commander, action, object, timestamp 
-           FROM audit_logs
-       )
-       ORDER BY "timestamp" DESC`,
+      `SELECT LOG_ID AS "id",
+              TO_CHAR(TIMESTAMP, 'YYYY-MM-DD HH24:MI:SS') AS "timestamp", 
+              COMMANDER AS "username", 
+              ACTION AS "action", 
+              OBJECT AS "object"
+       FROM audit_logs
+       ORDER BY TIMESTAMP DESC`,
       [], { outFormat: oracledb.OUT_FORMAT_OBJECT }
     );
     res.json(result.rows);
